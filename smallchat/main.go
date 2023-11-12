@@ -24,4 +24,8 @@ func main() {
 	}
 
 	_, _ = conn.Write([]byte("Welcome\n"))
+
+	b := make([]byte, 1024)
+	_, _ = conn.Read(b)
+	fmt.Println(string(b))
 }
