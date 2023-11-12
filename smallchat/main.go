@@ -36,13 +36,15 @@ func main() {
 		case client := <-addch:
 			clients = append(clients, client)
 			_, _ = client.Write([]byte("Welcome\n"))
-			go func() {
-				for {
-					b := make([]byte, 1024)
-					_, _ = client.Read(b)
-					fmt.Println(string(b))
-				}
-			}()
+			go read(client)
 		}
+	}
+}
+
+func read(client net.Conn) {
+	for {
+		b := make([]byte, 1024)
+		_, _ = client.Read(b)
+		fmt.Println(string(b))
 	}
 }
