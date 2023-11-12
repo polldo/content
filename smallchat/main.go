@@ -29,7 +29,7 @@ func main() {
 
 	fmt.Println("Server started")
 
-	clients := []Client{}
+	clients := make(map[int]Client)
 	addch := make(chan Client, 1)
 	msgch := make(chan Msg, 1)
 
@@ -46,7 +46,7 @@ func main() {
 	for {
 		select {
 		case client := <-addch:
-			clients = append(clients, client)
+			clients[client.id] = client
 			_, _ = client.Write([]byte("Welcome\n"))
 			go read(client, msgch)
 
