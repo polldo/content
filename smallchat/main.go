@@ -19,18 +19,30 @@ func main() {
 	fmt.Println("Server started")
 
 	clients := []net.Conn{}
+	addch := make(chan net.Conn, 1)
+
+	go func() {
+		for {
+			client, err := server.Accept()
+			if err != nil {
+				fmt.Println(err)
+			}
+			addch <- client
+		}
+	}()
 
 	for {
-		conn, err := server.Accept()
-		if err != nil {
-			fmt.Println(err)
+		select {
+		case client := <-addch:
+			clients = append(clients, client)
+			_, _ = client.Write([]byte("Welcome\n"))
+			go func() {
+				for {
+					b := make([]byte, 1024)
+					_, _ = client.Read(b)
+					fmt.Println(string(b))
+				}
+			}()
 		}
-		clients = append(clients, conn)
-
-		_, _ = conn.Write([]byte("Welcome\n"))
-
-		b := make([]byte, 1024)
-		_, _ = conn.Read(b)
-		fmt.Println(string(b))
 	}
 }
