@@ -17,4 +17,11 @@ func main() {
 	defer server.Close()
 
 	fmt.Println("Server started")
+
+	conn, err := server.Accept()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	_, _ = conn.Write([]byte("Welcome\n"))
 }
