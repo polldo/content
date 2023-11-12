@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -20,6 +21,7 @@ func main() {
 
 	clients := []net.Conn{}
 	addch := make(chan net.Conn, 1)
+	msgch := make(chan string, 1)
 
 	go func() {
 		for {
@@ -36,15 +38,22 @@ func main() {
 		case client := <-addch:
 			clients = append(clients, client)
 			_, _ = client.Write([]byte("Welcome\n"))
-			go read(client)
+			go read(client, msgch)
+
+		case msg := <-msgch:
+			fmt.Println(msg)
+			for _, c := range clients {
+				c.Write([]byte(msg))
+			}
 		}
 	}
 }
 
-func read(client net.Conn) {
+func read(client net.Conn, msgch chan string) {
 	for {
 		b := make([]byte, 1024)
 		_, _ = client.Read(b)
-		fmt.Println(string(b))
+		txt := strings.TrimRight(string(b), "\n\r")
+		msgch <- txt
 	}
 }
