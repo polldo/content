@@ -7,6 +7,16 @@ import (
 	"strings"
 )
 
+type Client struct {
+	net.Conn
+	id int
+}
+
+type Msg struct {
+	senderID int
+	text     string
+}
+
 func main() {
 	fmt.Println("Hello world")
 
@@ -19,17 +29,17 @@ func main() {
 
 	fmt.Println("Server started")
 
-	clients := []net.Conn{}
-	addch := make(chan net.Conn, 1)
-	msgch := make(chan string, 1)
+	clients := []Client{}
+	addch := make(chan Client, 1)
+	msgch := make(chan Msg, 1)
 
 	go func() {
-		for {
-			client, err := server.Accept()
+		for cnt := 0; ; cnt++ {
+			conn, err := server.Accept()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("error accepting client: %v\n", err)
 			}
-			addch <- client
+			addch <- Client{Conn: conn, id: cnt}
 		}
 	}()
 
@@ -43,17 +53,20 @@ func main() {
 		case msg := <-msgch:
 			fmt.Println(msg)
 			for _, c := range clients {
-				c.Write([]byte(msg))
+				if msg.senderID == c.id {
+					continue
+				}
+				c.Write([]byte(msg.text))
 			}
 		}
 	}
 }
 
-func read(client net.Conn, msgch chan string) {
+func read(client Client, msgch chan Msg) {
 	for {
 		b := make([]byte, 1024)
 		_, _ = client.Read(b)
 		txt := strings.TrimRight(string(b), "\n\r")
-		msgch <- txt
+		msgch <- Msg{senderID: client.id, text: txt}
 	}
 }
