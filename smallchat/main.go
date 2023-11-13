@@ -75,6 +75,12 @@ func process(users map[int]User, msg Msg) {
 		return
 	}
 
+	if strings.HasPrefix(msg.text, "/") {
+		args := strings.Split(msg.text, " ")
+		fmt.Println(args[0])
+		return
+	}
+
 	txt := fmt.Sprintf("%s: %s\n", sender.nick, msg.text)
 	for _, c := range users {
 		if msg.senderID == c.id {
