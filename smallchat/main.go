@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -31,6 +32,7 @@ func main() {
 
 	clients := make(map[int]Client)
 	addch := make(chan Client, 1)
+	quitch := make(chan Client, 1)
 	msgch := make(chan Msg, 1)
 
 	go func() {
@@ -48,7 +50,12 @@ func main() {
 		case client := <-addch:
 			clients[client.id] = client
 			_, _ = client.Write([]byte("Welcome\n"))
-			go read(client, msgch)
+			go read(client, msgch, quitch)
+
+		case client := <-quitch:
+			delete(clients, client.id)
+			_ = client.Close()
+			fmt.Printf("Client[%d] disconnected\n", client.id)
 
 		case msg := <-msgch:
 			fmt.Println(msg)
@@ -62,11 +69,17 @@ func main() {
 	}
 }
 
-func read(client Client, msgch chan Msg) {
+func read(client Client, msgch chan Msg, quitch chan Client) {
+	reader := bufio.NewReader(client.Conn)
 	for {
-		b := make([]byte, 1024)
-		_, _ = client.Read(b)
-		txt := strings.TrimRight(string(b), "\n\r")
+		txt, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Printf("Error reading client[%d]:%v\n", client.id, err)
+			quitch <- client
+			return
+		}
+
+		txt = strings.TrimRight(txt, "\n\r")
 		msgch <- Msg{senderID: client.id, text: txt}
 	}
 }
