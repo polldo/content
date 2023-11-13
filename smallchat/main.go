@@ -63,22 +63,28 @@ func main() {
 			fmt.Printf("Client[%d] disconnected\n", client.id)
 
 		case msg := <-msgch:
-			process(users, msg)
+			if err := process(users, msg); err != nil {
+				err := fmt.Sprintf("Error: %s\n", err.Error())
+				_, _ = users[msg.senderID].Write([]byte(err))
+			}
 		}
 	}
 }
 
-func process(users map[int]User, msg Msg) {
+func process(users map[int]User, msg Msg) error {
 	sender, ok := users[msg.senderID]
 	if !ok {
 		fmt.Printf("sender of message[%v] has gone\n", msg)
-		return
+		return nil
 	}
 
 	if strings.HasPrefix(msg.text, "/") {
 		args := strings.Split(msg.text, " ")
-		fmt.Println(args[0])
-		return
+		switch args[0] {
+		case "/nick":
+		default:
+			return fmt.Errorf("cmd[%v] is unknwon", args[0])
+		}
 	}
 
 	txt := fmt.Sprintf("%s: %s\n", sender.nick, msg.text)
@@ -88,6 +94,8 @@ func process(users map[int]User, msg Msg) {
 		}
 		c.Write([]byte(txt))
 	}
+
+	return nil
 }
 
 func read(client Client, msgch chan Msg, quitch chan Client) {
