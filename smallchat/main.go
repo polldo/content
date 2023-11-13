@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+type User struct {
+	Client
+	nick string
+}
+
 type Client struct {
 	net.Conn
 	id int
@@ -30,8 +35,8 @@ func main() {
 
 	fmt.Println("Server started")
 
-	clients := make(map[int]Client)
-	addch := make(chan Client, 1)
+	users := make(map[int]User)
+	addch := make(chan User, 1)
 	quitch := make(chan Client, 1)
 	msgch := make(chan Msg, 1)
 
@@ -41,35 +46,41 @@ func main() {
 			if err != nil {
 				fmt.Printf("error accepting client: %v\n", err)
 			}
-			addch <- Client{Conn: conn, id: cnt}
+			addch <- User{Client: Client{Conn: conn, id: cnt}, nick: fmt.Sprintf("user-%d", cnt)}
 		}
 	}()
 
 	for {
 		select {
-		case client := <-addch:
-			clients[client.id] = client
-			_, _ = client.Write([]byte("Welcome\n"))
-			go read(client, msgch, quitch)
+		case user := <-addch:
+			users[user.id] = user
+			_, _ = user.Write([]byte("Welcome\n"))
+			go read(user.Client, msgch, quitch)
 
 		case client := <-quitch:
-			delete(clients, client.id)
+			delete(users, client.id)
 			_ = client.Close()
 			fmt.Printf("Client[%d] disconnected\n", client.id)
 
 		case msg := <-msgch:
-			process(clients, msg)
+			process(users, msg)
 		}
 	}
 }
 
-func process(clients map[int]Client, msg Msg) {
-	fmt.Println(msg)
-	for _, c := range clients {
+func process(users map[int]User, msg Msg) {
+	sender, ok := users[msg.senderID]
+	if !ok {
+		fmt.Printf("sender of message[%v] has gone\n", msg)
+		return
+	}
+
+	txt := fmt.Sprintf("%s: %s\n", sender.nick, msg.text)
+	for _, c := range users {
 		if msg.senderID == c.id {
 			continue
 		}
-		c.Write([]byte(msg.text))
+		c.Write([]byte(txt))
 	}
 }
 
