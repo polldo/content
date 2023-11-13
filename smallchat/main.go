@@ -58,14 +58,18 @@ func main() {
 			fmt.Printf("Client[%d] disconnected\n", client.id)
 
 		case msg := <-msgch:
-			fmt.Println(msg)
-			for _, c := range clients {
-				if msg.senderID == c.id {
-					continue
-				}
-				c.Write([]byte(msg.text))
-			}
+			process(clients, msg)
 		}
+	}
+}
+
+func process(clients map[int]Client, msg Msg) {
+	fmt.Println(msg)
+	for _, c := range clients {
+		if msg.senderID == c.id {
+			continue
+		}
+		c.Write([]byte(msg.text))
 	}
 }
 
