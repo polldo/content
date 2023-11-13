@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -78,13 +79,25 @@ func process(users map[int]User, msg Msg) error {
 		return nil
 	}
 
+	if msg.text == "" {
+		return nil
+	}
+
 	if strings.HasPrefix(msg.text, "/") {
 		args := strings.Split(msg.text, " ")
 		switch args[0] {
+
 		case "/nick":
+			if len(args) < 2 {
+				return errors.New("a nickname is required")
+			}
+			sender.nick = args[1]
+			users[msg.senderID] = sender
+
 		default:
 			return fmt.Errorf("cmd[%v] is unknwon", args[0])
 		}
+		return nil
 	}
 
 	txt := fmt.Sprintf("%s: %s\n", sender.nick, msg.text)
